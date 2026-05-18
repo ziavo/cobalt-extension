@@ -88,6 +88,9 @@ loadCachedInstances().then(() => fetchInstances());
 setupPrewarmAlarm();
 setupContextMenu();
 
+const nativeDownloads = new Map();
+
+
 // Load instances from persistent storage (survives SW restart)
 async function loadCachedInstances() {
   try {
@@ -168,6 +171,7 @@ async function addToHistory(entry) {
       sourceUrl: entry.sourceUrl,
       filename: entry.filename || "download",
       instance: entry.instance || "",
+      fileSize: entry.fileSize || "",
       timestamp: Date.now(),
     });
     // Keep only the last MAX_HISTORY items
@@ -664,7 +668,7 @@ async function tryDownload(instanceUrl, instance, body) {
   }
 }
 
-function triggerDownload(url, filename) {
+function triggerDownload(url, filename, sourceUrl) {
   if (!url) return;
   const opts = { url };
   if (filename) opts.filename = filename;
@@ -672,12 +676,70 @@ function triggerDownload(url, filename) {
     chrome.downloads.download(opts, (downloadId) => {
       if (chrome.runtime.lastError) {
         chrome.tabs.create({ url, active: false });
+      } else if (downloadId && sourceUrl) {
+        nativeDownloads.set(downloadId, sourceUrl);
+        const state = downloadStates.get(sourceUrl);
+        if (state) {
+          state.status = "downloading-file";
+          state.percent = 0;
+          state.downloadId = downloadId;
+          downloadStates.set(sourceUrl, state);
+        }
       }
     });
   } catch (_) {
     chrome.tabs.create({ url, active: false });
   }
 }
+
+chrome.downloads.onChanged.addListener((delta) => {
+  const downloadId = delta.id;
+  const sourceUrl = nativeDownloads.get(downloadId);
+  if (!sourceUrl) return;
+
+  const state = downloadStates.get(sourceUrl);
+  if (!state) return;
+
+  chrome.downloads.search({ id: downloadId }, (items) => {
+    if (!items || items.length === 0) return;
+    const item = items[0];
+
+    if (item.state === "in_progress") {
+      if (item.totalBytes > 0) {
+        const pct = Math.round((item.bytesReceived / item.totalBytes) * 100);
+        state.status = "downloading-file";
+        state.percent = pct;
+        downloadStates.set(sourceUrl, state);
+
+        // Update badge text to show real-time percentage
+        chrome.action.setBadgeText({ text: `${pct}%` });
+        chrome.action.setBadgeBackgroundColor({ color: "#22c55e" });
+      }
+    } else if (item.state === "complete") {
+      state.status = "success";
+      state.percent = 100;
+      downloadStates.set(sourceUrl, state);
+      nativeDownloads.delete(downloadId);
+
+      // Restore normal badge
+      updateBadge();
+
+      // Clear after 30s
+      setTimeout(() => downloadStates.delete(sourceUrl), 30_000);
+    } else if (item.state === "interrupted") {
+      state.status = "error";
+      if (!state.result) state.result = {};
+      state.result.error = "Download interrupted";
+      downloadStates.set(sourceUrl, state);
+      nativeDownloads.delete(downloadId);
+
+      // Restore normal badge
+      updateBadge();
+
+      setTimeout(() => downloadStates.delete(sourceUrl), 30_000);
+    }
+  });
+});
 
 async function processDownload(url, overrides = {}) {
   if (activeDownloads.has(url)) {
@@ -692,11 +754,14 @@ async function processDownload(url, overrides = {}) {
     
     // Auto-trigger native browser download if successful and not a picker
     if (result.success && result.status !== "picker" && result.url) {
-      triggerDownload(result.url, result.filename);
+      triggerDownload(result.url, result.filename, url);
     }
 
-    // Auto-clear after 30s
-    setTimeout(() => downloadStates.delete(url), 30_000);
+    // Auto-clear after 30s if not still downloading
+    const current = downloadStates.get(url);
+    if (current && current.status !== "downloading-file") {
+      setTimeout(() => downloadStates.delete(url), 30_000);
+    }
     return result;
   } catch (err) {
     downloadStates.set(url, { status: "error", result: { success: false, error: err.message } });
@@ -715,6 +780,29 @@ function randomizeFilename(filename) {
   }
   const ext = filename && filename.includes(".") ? filename.substring(filename.lastIndexOf(".")) : ".mp4";
   return `${hash}${ext}`;
+}
+
+async function getFileSize(url) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(url, { method: "HEAD", signal: controller.signal });
+    clearTimeout(timeout);
+    const len = res.headers.get("content-length");
+    if (len) {
+      const bytes = parseInt(len, 10);
+      if (!isNaN(bytes) && bytes > 0) {
+        if (bytes < 1024) return bytes + " B";
+        const kb = bytes / 1024;
+        if (kb < 1024) return kb.toFixed(1) + " KB";
+        const mb = kb / 1024;
+        if (mb < 1024) return mb.toFixed(1) + " MB";
+        const gb = mb / 1024;
+        return gb.toFixed(1) + " GB";
+      }
+    }
+  } catch (_) {}
+  return null;
 }
 
 async function _processDownload(url, overrides = {}) {
@@ -751,7 +839,11 @@ async function _processDownload(url, overrides = {}) {
       const r = await tryDownload(primary.url, primary, body);
       if (r.success) {
         if (isRandom) r.filename = randomizeFilename(r.filename);
-        addToHistory({ url: r.url, sourceUrl: url, filename: r.filename, instance: primary.name });
+        if (r.url && r.status !== "picker") {
+          const sz = await getFileSize(r.url);
+          if (sz) r.fileSize = sz;
+        }
+        addToHistory({ url: r.url, sourceUrl: url, filename: r.filename, instance: primary.name, fileSize: r.fileSize });
         incrementDownloadCount(primary.url);
         return { ...r, usedInstance: primary.name };
       }
@@ -767,7 +859,11 @@ async function _processDownload(url, overrides = {}) {
         const r = await tryDownload(primary.url, primary, body);
         if (r.success) {
           if (isRandom) r.filename = randomizeFilename(r.filename);
-          addToHistory({ url: r.url, sourceUrl: url, filename: r.filename, instance: primary.name });
+          if (r.url && r.status !== "picker") {
+            const sz = await getFileSize(r.url);
+            if (sz) r.fileSize = sz;
+          }
+          addToHistory({ url: r.url, sourceUrl: url, filename: r.filename, instance: primary.name, fileSize: r.fileSize });
           incrementDownloadCount(primary.url);
           return { ...r, usedInstance: primary.name };
         }
@@ -799,7 +895,11 @@ async function _processDownload(url, overrides = {}) {
         const r = await tryDownload(inst.url, inst, body);
         if (r.success) {
           if (isRandom) r.filename = randomizeFilename(r.filename);
-          addToHistory({ url: r.url, sourceUrl: url, filename: r.filename, instance: inst.name });
+          if (r.url && r.status !== "picker") {
+            const sz = await getFileSize(r.url);
+            if (sz) r.fileSize = sz;
+          }
+          addToHistory({ url: r.url, sourceUrl: url, filename: r.filename, instance: inst.name, fileSize: r.fileSize });
           incrementDownloadCount(inst.url);
           return { ...r, usedInstance: inst.name };
         }

@@ -194,38 +194,17 @@ async function restoreActiveDownloads() {
     const btn = $("download-btn");
 
     for (const dl of downloads) {
-      const shortUrl = dl.url.replace(/^https?:\/\//, "").slice(0, 40) + (dl.url.length > 55 ? "…" : "");
-
-      if (dl.status === "downloading") {
+      if (dl.status === "downloading" || dl.status === "downloading-file") {
         activeDownloadCount++;
         btn.classList.add("downloading");
         const entryId = addDownloadEntry(dl.url);
-
-        // Poll this specific download
-        const poller = setInterval(async () => {
-          const all = await msg({ action: "getActiveDownloads" });
-          const current = all?.find(d => d.url === dl.url);
-          if (!current || current.status !== "downloading") {
-            clearInterval(poller);
-            activeDownloadCount--;
-            if (activeDownloadCount <= 0) { activeDownloadCount = 0; btn.classList.remove("downloading"); }
-
-            if (current?.status === "success" && current.result) {
-              const fname = current.result.filename || "file";
-              const via = current.result.usedInstance ? ` · ${current.result.usedInstance}` : "";
-              updateDownloadEntry(entryId, "success", `✓ ${fname}${via}`);
-              if (current.result.status === "picker") renderPicker(current.result);
-              updateDownloadCount();
-            } else if (current?.status === "error") {
-              updateDownloadEntry(entryId, "error", `✕ ${current.result?.error || "Failed"}`);
-            }
-          }
-        }, 800);
+        trackDownloadProgress(dl.url, entryId);
       } else if (dl.status === "success" && dl.result) {
         const fname = dl.result.filename || "file";
+        const sizeStr = dl.result.fileSize ? ` (${dl.result.fileSize})` : "";
         const via = dl.result.usedInstance ? ` · ${dl.result.usedInstance}` : "";
         const entryId = addDownloadEntry(dl.url);
-        updateDownloadEntry(entryId, "success", `✓ ${fname}${via}`);
+        updateDownloadEntry(entryId, "success", `✓ ${fname}${sizeStr}${via}`);
       } else if (dl.status === "error" && dl.result) {
         const entryId = addDownloadEntry(dl.url);
         updateDownloadEntry(entryId, "error", `✕ ${dl.result.error || "Failed"}`);
@@ -291,22 +270,7 @@ $("url-input").addEventListener("keydown", (e) => {
 let activeDownloadCount = 0;
 
 // Trigger a real browser download (file save dialog) using chrome.downloads API
-function triggerDownload(url, filename) {
-  if (!url) return;
-  const opts = { url };
-  if (filename) opts.filename = filename;
-  try {
-    chrome.downloads.download(opts, (downloadId) => {
-      if (chrome.runtime.lastError) {
-        chrome.tabs.create({ url, active: false });
-      }
-    });
-  } catch (_) {
-    chrome.tabs.create({ url, active: false });
-  }
-}
-
-// Add a download item to the status feed
+// Add a download item to the status feed with progress bar placeholders
 function addDownloadEntry(url) {
   const area = $("status-area");
   area.classList.remove("hidden");
@@ -318,9 +282,77 @@ function addDownloadEntry(url) {
   const entry = document.createElement("div");
   entry.className = "dl-entry";
   entry.id = id;
-  entry.innerHTML = `<span class="spinner"></span> <span class="dl-entry-text">${shortUrl}</span>`;
+  entry.innerHTML = `
+    <div class="dl-entry-main">
+      <span class="spinner"></span> 
+      <span class="dl-entry-text">${shortUrl}</span>
+    </div>
+    <div class="dl-progress-wrap hidden">
+      <div class="dl-progress-bar-container">
+        <div class="dl-progress-bar" style="width: 0%"></div>
+      </div>
+      <span class="dl-progress-pct">0%</span>
+    </div>
+  `;
   area.prepend(entry);
   return id;
+}
+
+function trackDownloadProgress(url, entryId) {
+  const btn = $("download-btn");
+  const poller = setInterval(async () => {
+    const all = await msg({ action: "getActiveDownloads" });
+    const current = all?.find(d => d.url === url);
+    if (!current) {
+      clearInterval(poller);
+      return;
+    }
+
+    const entry = document.getElementById(entryId);
+    if (!entry) {
+      clearInterval(poller);
+      return;
+    }
+
+    if (current.status === "downloading") {
+      const label = entry.querySelector(".dl-entry-text");
+      if (label) label.textContent = "Resolving link with server...";
+    } else if (current.status === "downloading-file") {
+      const wrap = entry.querySelector(".dl-progress-wrap");
+      if (wrap) {
+        wrap.classList.remove("hidden");
+        const pct = current.percent || 0;
+        entry.querySelector(".dl-progress-bar").style.width = `${pct}%`;
+        entry.querySelector(".dl-progress-pct").textContent = `${pct}%`;
+      }
+      const label = entry.querySelector(".dl-entry-text");
+      if (label) {
+        const fname = current.result?.filename || "file";
+        label.textContent = `Saving: ${fname}`;
+      }
+    } else if (current.status === "success") {
+      clearInterval(poller);
+      activeDownloadCount--;
+      if (activeDownloadCount <= 0) { activeDownloadCount = 0; btn.classList.remove("downloading"); }
+
+      const fname = current.result?.filename || "file";
+      const sizeStr = current.result?.fileSize ? ` (${current.result.fileSize})` : "";
+      const via = current.result?.usedInstance ? ` · ${current.result.usedInstance}` : "";
+      updateDownloadEntry(entryId, "success", `✓ ${fname}${sizeStr}${via}`);
+      if (current.result?.status === "picker") renderPicker(current.result);
+      updateDownloadCount();
+    } else if (current.status === "error") {
+      clearInterval(poller);
+      activeDownloadCount--;
+      if (activeDownloadCount <= 0) { activeDownloadCount = 0; btn.classList.remove("downloading"); }
+      
+      let errorMsg = current.result?.error || "Request failed.";
+      if (current.result?.allFailed) {
+        errorMsg = errorMsg.replace(/Download failed:\n?/, "").split("\n")[0];
+      }
+      updateDownloadEntry(entryId, "error", `✕ ${errorMsg}`);
+    }
+  }, 800);
 }
 
 function updateDownloadEntry(id, status, html) {
@@ -358,41 +390,17 @@ $("download-btn").addEventListener("click", async () => {
     audioFormat: $("qs-audioFormat").value,
   };
 
-  // Fire-and-forget: download runs in background, UI updates via entry
-  msg({ action: "download", url, overrides }).then(result => {
-    activeDownloadCount--;
-    if (activeDownloadCount <= 0) {
-      activeDownloadCount = 0;
-      btn.classList.remove("downloading");
-    }
+  // Start progress tracking instantly
+  trackDownloadProgress(url, entryId);
 
-    if (!result || !result.success) {
-      let errorMsg = result?.error || "Request failed.";
-      if (result?.allFailed) {
-        errorMsg = errorMsg.replace(/Download failed:\n?/, "").split("\n")[0];
-      }
-      updateDownloadEntry(entryId, "error", `✕ ${errorMsg}`);
-      return;
-    }
-
-    if (result.status === "picker") {
-      const via = result.usedInstance ? ` via ${result.usedInstance}` : "";
-      updateDownloadEntry(entryId, "success", `✓ ${result.picker.length} items found${via}`);
-      renderPicker(result);
-      updateDownloadCount();
-      return;
-    }
-
-    const fname = result.filename || "file";
-    const via = result.usedInstance ? ` · ${result.usedInstance}` : "";
-    updateDownloadEntry(entryId, "success", `✓ ${fname}${via}`);
-    updateDownloadCount();
-  }).catch(err => {
+  // Fire-and-forget: download runs in background, UI updates via poller
+  msg({ action: "download", url, overrides }).catch(err => {
     activeDownloadCount--;
     if (activeDownloadCount <= 0) { activeDownloadCount = 0; btn.classList.remove("downloading"); }
     updateDownloadEntry(entryId, "error", `✕ ${err.message}`);
   });
 });
+
 
 // ─── Picker ─────────────────────────────────────────────────────────────
 function renderPicker(data) {
@@ -638,10 +646,11 @@ async function renderHistory() {
   history.forEach(entry => {
     const card = document.createElement("div");
     card.className = "history-item";
+    const sizeStr = entry.fileSize ? ` · ${entry.fileSize}` : "";
     card.innerHTML = `
       <div class="history-info">
         <div class="history-filename" title="${entry.filename}">${entry.filename}</div>
-        <div class="history-meta">${entry.instance ? entry.instance + " · " : ""}${timeAgo(entry.timestamp)}</div>
+        <div class="history-meta">${entry.instance ? entry.instance + " · " : ""}${timeAgo(entry.timestamp)}${sizeStr}</div>
       </div>
       <div class="history-actions">
         <button class="history-copy" title="Copy source URL">${ICONS.copy}</button>

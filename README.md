@@ -140,8 +140,11 @@ graph TD
 Here are some cool, planned features and Quality-of-Life ideas to improve the extension even further:
 
 - [x] **🔏 Privacy Filename Randomizer:** Auto-rename files to random 6-character alphanumeric hashes (e.g. `a7e2b1.mp4`) so people cannot see the video's origin or platform from the filename. (*Implemented! Go to Settings -> Filename Style -> Privacy*)
+- [x] **📊 File Size Estimator:** Sub-second background checks calculate exact media sizes before downloading, displaying the data (e.g., `45.2 MB`) in the live progress feed and history tab. (*Implemented!*)
 - [ ] **🖱️ Right-Click Context Menu Download:** Right-click on any supported link or thumbnail and select *"Download with Cobalt"* to queue a background download instantly.
 - [ ] **🔔 Desktop OS Notification Bubbles:** Receive standard desktop notifications when a background download finishes, complete with click-to-play or open-folder shortcuts.
 - [ ] **📂 Smart File Routing:** Automatically sort your downloads into separate directories based on platform (e.g. YouTube media goes to `/Downloads/Cobalt/YouTube`).
-- [ ] **📊 Real-time Progress Bar:** Add a mini-percentage indicator on the extension icon badge so you can track progress without having the popup open.
+- [x] **📈 Real-time Progress Bar:** Dynamic linear progress bars inside the popup and a live percentage tracker directly on the extension icon badge let you monitor background downloads natively. (*Implemented!*)
 - [ ] **📥 Config Export & Import:** Back up your pinned instances, history records, and custom settings into a portable JSON file.
+- [ ] **📦 Direct-to-Cloud Saves:** Push resolved stream direct links straight into Google Drive, OneDrive, or Dropbox to bypass local disk usage. (*Planned QOL*)
+- [ ] **🌐 Dynamic Platform-Specific Configs:** Set distinct automatic defaults per platform (e.g., auto-extract audio for SoundCloud, auto-high res video for YouTube). (*Planned QOL*)
