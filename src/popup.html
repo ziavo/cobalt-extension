@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=450">
+  <title>Cobalt Downloader</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <!-- ─── Header ─── -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" fill="url(#g1)"/>
+            <path d="M2 17l10 5 10-5" stroke="url(#g2)" stroke-width="2" fill="none"/>
+            <path d="M2 12l10 5 10-5" stroke="url(#g3)" stroke-width="2" fill="none"/>
+            <defs>
+              <linearGradient id="g1" x1="2" y1="2" x2="22" y2="12"><stop stop-color="#818cf8"/><stop offset="1" stop-color="#c084fc"/></linearGradient>
+              <linearGradient id="g2" x1="2" y1="17" x2="22" y2="22"><stop stop-color="#818cf8"/><stop offset="1" stop-color="#c084fc"/></linearGradient>
+              <linearGradient id="g3" x1="2" y1="12" x2="22" y2="17"><stop stop-color="#818cf8"/><stop offset="1" stop-color="#c084fc"/></linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="brand-text">Cobalt</span>
+        <span class="brand-badge">v1.4</span>
+      </div>
+      <div class="header-tabs">
+        <button class="tab active" data-tab="download">Download</button>
+        <button class="tab" data-tab="instances">Instances</button>
+        <button class="tab" data-tab="history">History</button>
+        <button class="tab" data-tab="settings">Settings</button>
+      </div>
+    </header>
+
+    <!-- ─── Download Tab ─── -->
+    <section class="panel active" id="panel-download">
+      <div class="input-group">
+        <label class="input-label">Paste a link to download</label>
+        <div class="url-input-wrap">
+          <input type="text" id="url-input" class="url-input" placeholder="https://youtube.com/watch?v=..." spellcheck="false" autocomplete="off">
+          <button id="paste-btn" class="icon-btn" title="Paste from clipboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+          <button id="clear-btn" class="icon-btn" title="Clear">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <p class="url-hint">Supports YouTube, Twitter/X, Instagram, TikTok, Reddit, SoundCloud, Twitch, Vimeo & more · <kbd>Alt+Shift+D</kbd> to quick download</p>
+      </div>
+
+      <div class="quick-settings">
+        <div class="qs-item">
+          <label>Mode</label>
+          <select id="qs-mode">
+            <option value="auto">Auto</option>
+            <option value="audio">Audio Only</option>
+            <option value="mute">Mute (no audio)</option>
+          </select>
+        </div>
+        <div class="qs-item">
+          <label>Quality</label>
+          <select id="qs-quality">
+            <option value="max">Max</option>
+            <option value="4320">8K</option>
+            <option value="2160">4K</option>
+            <option value="1440">1440p</option>
+            <option value="1080" selected>1080p</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+            <option value="360">360p</option>
+            <option value="144">144p</option>
+          </select>
+        </div>
+        <div class="qs-item">
+          <label>Format</label>
+          <select id="qs-audioFormat">
+            <option value="best">Best</option>
+            <option value="mp3" selected>MP3</option>
+            <option value="ogg">OGG</option>
+            <option value="wav">WAV</option>
+            <option value="opus">Opus</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="download-btn" class="primary-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Download</span>
+      </button>
+
+      <!-- Active instance indicator -->
+      <div class="active-instance-bar" id="active-instance-bar">
+        <span class="instance-dot"></span>
+        <span class="ready-indicator warming" id="ready-indicator" title="Warming up…"></span>
+        <span id="active-instance-name">Loading...</span>
+        <span class="dl-count" id="dl-count" title="Total downloads"></span>
+        <button class="reset-count-btn" id="reset-count-btn" title="Reset download count">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        </button>
+      </div>
+
+      <!-- Status area -->
+      <div id="status-area" class="status-area hidden"></div>
+
+      <!-- Picker area (for multi-item responses) -->
+      <div id="picker-area" class="picker-area hidden"></div>
+    </section>
+
+    <!-- ─── Instances Tab ─── -->
+    <section class="panel" id="panel-instances">
+      <div class="instances-header">
+        <p class="section-desc">Instances are fetched automatically. Pin your favourites to try them first.</p>
+        <button id="check-all-btn" class="secondary-btn small">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Refresh
+        </button>
+      </div>
+      <div id="instance-list" class="instance-list"></div>
+
+      <div class="add-instance">
+        <p class="section-label">Add Priority Instance</p>
+        <div class="add-row">
+          <input type="text" id="new-instance-name" placeholder="My Instance" class="add-input name-input">
+          <input type="text" id="new-instance-url" placeholder="https://api.example.com" class="add-input url-add-input">
+          <button id="add-instance-btn" class="icon-btn add-btn" title="Add instance">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="instance-footer">
+        <a href="https://cobalt.directory" target="_blank" class="ext-link">
+          Browse all instances ↗
+        </a>
+      </div>
+    </section>
+
+    <!-- ─── History Tab ─── -->
+    <section class="panel" id="panel-history">
+      <div class="history-header">
+        <p class="section-desc">Your recent downloads (last 50)</p>
+        <button id="clear-history-btn" class="secondary-btn small danger">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          Clear
+        </button>
+      </div>
+      <div id="history-list" class="history-list"></div>
+      <div id="history-empty" class="history-empty">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <p>No downloads yet</p>
+      </div>
+    </section>
+
+    <!-- ─── Settings Tab ─── -->
+    <section class="panel" id="panel-settings">
+      <div class="settings-group">
+        <p class="section-label">Video</p>
+        <div class="setting-row">
+          <label>Default Quality</label>
+          <select id="s-videoQuality" class="auto-save">
+            <option value="max">Max</option>
+            <option value="4320">8K</option>
+            <option value="2160">4K</option>
+            <option value="1440">1440p</option>
+            <option value="1080">1080p</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+            <option value="360">360p</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>YouTube Codec</label>
+          <select id="s-youtubeVideoCodec" class="auto-save">
+            <option value="h264">H.264</option>
+            <option value="av1">AV1</option>
+            <option value="vp9">VP9</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>Download Mode</label>
+          <select id="s-downloadMode" class="auto-save">
+            <option value="auto">Auto</option>
+            <option value="audio">Audio Only</option>
+            <option value="mute">Mute</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <p class="section-label">Audio</p>
+        <div class="setting-row">
+          <label>Format</label>
+          <select id="s-audioFormat" class="auto-save">
+            <option value="best">Best</option>
+            <option value="mp3">MP3</option>
+            <option value="ogg">OGG</option>
+            <option value="wav">WAV</option>
+            <option value="opus">Opus</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>Bitrate</label>
+          <select id="s-audioBitrate" class="auto-save">
+            <option value="320">320 kbps</option>
+            <option value="256">256 kbps</option>
+            <option value="128">128 kbps</option>
+            <option value="96">96 kbps</option>
+            <option value="64">64 kbps</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <p class="section-label">Other</p>
+        <div class="setting-row">
+          <label>Filename Style</label>
+          <select id="s-filenameStyle" class="auto-save">
+            <option value="pretty">Pretty</option>
+            <option value="classic">Classic</option>
+            <option value="basic">Basic</option>
+            <option value="nerdy">Nerdy</option>
+          </select>
+        </div>
+        <div class="setting-row toggle-row">
+          <label>Strip Metadata</label>
+          <label class="toggle">
+            <input type="checkbox" id="s-disableMetadata" class="auto-save">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="setting-row toggle-row">
+          <label>Convert Twitter GIFs</label>
+          <label class="toggle">
+            <input type="checkbox" id="s-convertGif" class="auto-save" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-saved-toast hidden" id="settings-toast">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Settings saved
+      </div>
+    </section>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

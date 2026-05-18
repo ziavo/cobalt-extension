@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Cobalt Downloader",
+  "version": "1.4.0",
+  "description": "Download media from YouTube, Twitter, Instagram & more using Cobalt community instances — no website needed.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "tabs",
+    "alarms",
+    "contextMenus",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://*/*"
+  ],
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "src/icons/icon16.png",
+      "48": "src/icons/icon48.png",
+      "128": "src/icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "src/icons/icon16.png",
+    "48": "src/icons/icon48.png",
+    "128": "src/icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "commands": {
+    "quick-download": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "Quick download media from active tab"
+    }
+  }
+}
