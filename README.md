@@ -7,7 +7,9 @@
 **Cobalt Web Downloader Companion** is a lightweight, high-performance browser extension that enhances your media downloading experience. 
 
 > [!NOTE]
-> **Clarification:** This extension is a third-party helper tool that connects directly to the Cobalt ecosystem. It does not run or host Cobalt itself; instead, it plugs right into your browser to make utilizing Cobalt public servers as seamless, fast, and automated as possible.
+> **Clarification:** This extension is a third-party helper tool that connects directly to the Cobalt ecosystem. It does not run, host, or belong to the official Cobalt project itself. Instead, it plugs right into your browser to make using the public Cobalt APIs as seamless and automated as possible.
+>
+> You can visit the official web tool and find the original project resources at **[cobalt.tools](https://cobalt.tools)**!
 
 ---
 
