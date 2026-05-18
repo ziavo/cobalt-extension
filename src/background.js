@@ -707,18 +707,29 @@ async function processDownload(url, overrides = {}) {
   }
 }
 
+function randomizeFilename(filename) {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let hash = "";
+  for (let i = 0; i < 6; i++) {
+    hash += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  const ext = filename && filename.includes(".") ? filename.substring(filename.lastIndexOf(".")) : ".mp4";
+  return `${hash}${ext}`;
+}
+
 async function _processDownload(url, overrides = {}) {
   const settings = await getSettings();
   const allInstances = await getAllInstances();
   const preferredUrl = overrides.instanceUrl || settings.activeInstance || allInstances[0]?.url;
 
+  const isRandom = settings.filenameStyle === "random";
   const body = {
     url,
     videoQuality: settings.videoQuality,
     audioFormat: settings.audioFormat,
     audioBitrate: settings.audioBitrate,
     downloadMode: settings.downloadMode,
-    filenameStyle: settings.filenameStyle,
+    filenameStyle: isRandom ? "basic" : settings.filenameStyle,
     youtubeVideoCodec: settings.youtubeVideoCodec,
     disableMetadata: settings.disableMetadata,
     convertGif: settings.convertGif,
@@ -739,6 +750,7 @@ async function _processDownload(url, overrides = {}) {
     try {
       const r = await tryDownload(primary.url, primary, body);
       if (r.success) {
+        if (isRandom) r.filename = randomizeFilename(r.filename);
         addToHistory({ url: r.url, sourceUrl: url, filename: r.filename, instance: primary.name });
         incrementDownloadCount(primary.url);
         return { ...r, usedInstance: primary.name };
@@ -754,6 +766,7 @@ async function _processDownload(url, overrides = {}) {
       if (auth.success) {
         const r = await tryDownload(primary.url, primary, body);
         if (r.success) {
+          if (isRandom) r.filename = randomizeFilename(r.filename);
           addToHistory({ url: r.url, sourceUrl: url, filename: r.filename, instance: primary.name });
           incrementDownloadCount(primary.url);
           return { ...r, usedInstance: primary.name };
@@ -785,6 +798,7 @@ async function _processDownload(url, overrides = {}) {
       if (auth.success) {
         const r = await tryDownload(inst.url, inst, body);
         if (r.success) {
+          if (isRandom) r.filename = randomizeFilename(r.filename);
           addToHistory({ url: r.url, sourceUrl: url, filename: r.filename, instance: inst.name });
           incrementDownloadCount(inst.url);
           return { ...r, usedInstance: inst.name };

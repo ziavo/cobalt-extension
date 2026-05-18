@@ -13,6 +13,16 @@
 
 ---
 
+## ✨ Why the Cobalt Platform is Amazing
+
+Before jumping in, it's worth noting the core features of **cobalt.tools** that make it so popular in the first place:
+*   **🚫 Zero Advertisements or Pop-ups:** Unlike sketchy download sites, Cobalt contains absolutely no tracking, no redirects, and no malicious ads. It is pure, direct, and safe.
+*   **⚡ Native Stream Extraction:** It grabs the direct media files straight from the hosting platform's CDN (content delivery network) so you get maximum transfer rates.
+*   **🔒 Complete Privacy:** No user accounts, no cookie-trackers, and no telemetry logs are saved. Your media extraction remains fully yours.
+*   **🛠️ Extremely Versatile:** Automatically parses raw streams, audio tracks, and gallery sets without requiring external dependencies or system codecs.
+
+---
+
 ## 🤔 What Does This Extension Do?
 
 Usually, to use Cobalt, you have to find a working website, copy a link, paste it, wait, and manually click download. 
@@ -24,7 +34,7 @@ This companion extension cuts out all the middle steps:
 
 ---
 
-## 🌍 How the "Instances & All That Jazz" Works
+## 🌍 How Instances Work
 
 Cobalt is decentralized, meaning it is hosted by generous volunteers all over the world. These servers are called **instances**. 
 
@@ -33,6 +43,12 @@ Instead of relying on a single website that could go down at any moment, this ex
 *   **Smart Speed Tests (Pinging):** The extension pings these public servers in the background to find out which ones are online, secure (HTTPS), and responding the fastest to your location.
 *   **Automatic Failover (Smart Fallback):** If your selected server is slow, times out, or asks for a security check (Turnstile), the extension immediately and silently switches your request to the next fastest server on the list.
 *   **Custom & Private Servers:** If you host your own private Cobalt server or have a favorite public one, you can paste its link in the **Instances** tab to pin it as your number-one priority.
+
+> [!TIP]
+> **⚡ Note on the "First Download" Warm-Up:**
+> Because many Cobalt servers use Cloudflare Turnstile to prevent bot spam, the extension has to perform a secure background handshake when you first open your browser or switch active instances. 
+> 
+> Due to this, **your very first download or server switch might take a few extra seconds** to connect and authenticate (you will see the status dot show yellow/warming up). But don't worry! Once that initial connection is established and the token is cached, **all subsequent downloads will be incredibly snappy, direct, and fast**!
 
 ---
 
@@ -116,3 +132,16 @@ graph TD
 
 *   **100% Local:** All of your download counts, custom server pins, and settings are saved locally in your browser. Absolutely zero trackers, analytics, or histories are sent to any remote telemetry servers.
 *   **Pure Native Connections:** The companion handles your downloads directly through Chrome's secure sandbox.
+
+---
+
+## 🚀 Future Roadmap & QOL Improvements (To-Do List)
+
+Here are some cool, planned features and Quality-of-Life ideas to improve the extension even further:
+
+- [x] **🔏 Privacy Filename Randomizer:** Auto-rename files to random 6-character alphanumeric hashes (e.g. `a7e2b1.mp4`) so people cannot see the video's origin or platform from the filename. (*Implemented! Go to Settings -> Filename Style -> Privacy*)
+- [ ] **🖱️ Right-Click Context Menu Download:** Right-click on any supported link or thumbnail and select *"Download with Cobalt"* to queue a background download instantly.
+- [ ] **🔔 Desktop OS Notification Bubbles:** Receive standard desktop notifications when a background download finishes, complete with click-to-play or open-folder shortcuts.
+- [ ] **📂 Smart File Routing:** Automatically sort your downloads into separate directories based on platform (e.g. YouTube media goes to `/Downloads/Cobalt/YouTube`).
+- [ ] **📊 Real-time Progress Bar:** Add a mini-percentage indicator on the extension icon badge so you can track progress without having the popup open.
+- [ ] **📥 Config Export & Import:** Back up your pinned instances, history records, and custom settings into a portable JSON file.
