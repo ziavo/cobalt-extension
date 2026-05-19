@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Cobalt Downloader",
   "version": "1.4.0",
-  "description": "Download media from YouTube, Twitter, Instagram & more using Cobalt community instances — no website needed.",
+  "description": "Download media from YouTube, Twitter, TikTok & more using Cobalt community instances — no website needed.",
   "permissions": [
     "activeTab",
     "storage",
@@ -29,8 +29,27 @@
     "128": "src/icons/icon128.png"
   },
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "src/background/main.js",
+    "type": "module"
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.tiktok.com/*",
+        "https://*.youtube.com/*",
+        "https://*.twitter.com/*",
+        "https://*.x.com/*"
+      ],
+      "js": [
+        "src/content/picker.js",
+        "src/content/tiktok.js",
+        "src/content/youtube.js",
+        "src/content/twitter.js",
+        "src/content/main.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
   "commands": {
     "quick-download": {
       "suggested_key": {

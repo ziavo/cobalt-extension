@@ -29,8 +29,9 @@ Usually, to use Cobalt, you have to find a working website, copy a link, paste i
 
 This companion extension cuts out all the middle steps:
 1. **Auto-detects Links:** It instantly detects if you are on a supported video or audio page (like YouTube, TikTok, or Twitter) and fills in the URL for you.
-2. **Natively Downloads:** It routes the download directly through your browser's built-in download manager. No weird tabs opening, no pop-up advertisements, and no redirect loops.
+2. **Natively Downloads:** It routes the download directly through your browser's built-in download manager. No weird background tabs flickering, no pop-up advertisements, and no redirect loops.
 3. **Alt+Shift+D Global Hotkey:** You don't even need to open the extension menu! Just press `Alt+Shift+D` on any video, and the browser will start downloading it in the background immediately.
+4. **🎨 Native Inline Save Buttons:** Spawns a beautifully integrated "Save" or "Download" button directly into the native UI of **TikTok**, **YouTube**, and **Twitter/X** (with **Instagram Coming Soon!**). It blends in perfectly with the active website theme (light/dark) and shows real-time loading spinners and success/error indicators right on the page!
 
 ---
 
@@ -44,16 +45,20 @@ Instead of relying on a single website that could go down at any moment, this ex
 *   **Automatic Failover (Smart Fallback):** If your selected server is slow, times out, or asks for a security check (Turnstile), the extension immediately and silently switches your request to the next fastest server on the list.
 *   **Custom & Private Servers:** If you host your own private Cobalt server or have a favorite public one, you can paste its link in the **Instances** tab to pin it as your number-one priority.
 
-> [!TIP]
-> **⚡ Note on the "First Download" Warm-Up:**
-> Because many Cobalt servers use Cloudflare Turnstile to prevent bot spam, the extension has to perform a secure background handshake when you first open your browser or switch active instances. 
+> [!IMPORTANT]
+> **🔐 Cloudflare Turnstile & On-Demand Tabs:**
+> Because many Cobalt servers use Cloudflare Turnstile to prevent bot spam, the extension must occasionally perform a secure handshake to get an auth token. Since modern browsers heavily throttle hidden background windows, **a temporary background tab will open every once in a while to automatically solve the Turnstile challenge and close itself.**
 > 
-> Due to this, **your very first download or server switch might take a few extra seconds** to connect and authenticate (you will see the status dot show yellow/warming up). But don't worry! Once that initial connection is established and the token is cached, **all subsequent downloads will be incredibly snappy, direct, and fast**!
+> To make this as unobtrusive as possible, **we have optimized this process to be strictly on-demand**:
+> * The extension **never** opens background tabs randomly on a timer or while you are idle.
+> * A Turnstile solver tab will **only** open at the exact moment you explicitly click a "Save" or "Download" button, and **only** if your selected Cobalt server requires active authentication.
+> * Once solved, the session is cached and subsequent downloads are instant. If you prefer to never see Turnstile tabs, you can select or add an instance that does not require a sitekey/authentication.
 
 ---
 
 ## 🚀 Key Features
 
+*   **🎨 Native Inline Save Buttons:** Fully integrated, native-looking "Save" / "Download" buttons injected directly into the layout of major supported sites (TikTok, YouTube, and Twitter/X, with Instagram Coming Soon!) with dynamic hover, loading, success, and error feedback states.
 *   **⚡ Multiple Downloads at Once:** Start as many downloads as you want. Each one shows up in a list in the extension with its own progress spinner.
 *   **🎵 Audio-Only & Video Quality Selectors:** Easily switch between capturing full-quality video (up to 4K/8K) or extracting just the audio stream into MP3, WAV, or Opus files.
 *   **🔄 Instant Tab Sync:** The link box updates in real-time as you switch browser tabs, so it's always ready to grab what you're actively watching.
@@ -119,7 +124,7 @@ graph TD
 
 *   **YouTube & Shorts** (`youtube.com`, `youtu.be`)
 *   **Twitter / X** (`twitter.com`, `x.com`)
-*   **Instagram** (Reels & Posts)
+*   **Instagram** (Reels & Posts - Coming Soon!)
 *   **TikTok**
 *   **Reddit**
 *   **SoundCloud**
@@ -141,7 +146,7 @@ Here are some cool, planned features and Quality-of-Life ideas to improve the ex
 
 - [x] **🔏 Privacy Filename Randomizer:** Auto-rename files to random 6-character alphanumeric hashes (e.g. `a7e2b1.mp4`) so people cannot see the video's origin or platform from the filename. (*Implemented! Go to Settings -> Filename Style -> Privacy*)
 - [x] **📊 File Size Estimator:** Sub-second background checks calculate exact media sizes before downloading, displaying the data (e.g., `45.2 MB`) in the live progress feed and history tab. (*Implemented!*)
-- [ ] **🖱️ Right-Click Context Menu Download:** Right-click on any supported link or thumbnail and select *"Download with Cobalt"* to queue a background download instantly.
+- [x] **🖱️ Right-Click Context Menu Download:** Right-click on any supported link or thumbnail and select *"Download with Cobalt"* to queue a background download instantly. (*Implemented!*)
 - [ ] **🔔 Desktop OS Notification Bubbles:** Receive standard desktop notifications when a background download finishes, complete with click-to-play or open-folder shortcuts.
 - [ ] **📂 Smart File Routing:** Automatically sort your downloads into separate directories based on platform (e.g. YouTube media goes to `/Downloads/Cobalt/YouTube`).
 - [x] **📈 Real-time Progress Bar:** Dynamic linear progress bars inside the popup and a live percentage tracker directly on the extension icon badge let you monitor background downloads natively. (*Implemented!*)

@@ -1,15 +1,14 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// Cobalt Downloader – Offscreen Turnstile Solver
-// Runs in an invisible offscreen document — no tabs, no flicker.
-// ═══════════════════════════════════════════════════════════════════════════
+export let turnstileReady = false;
+export let turnstileLoadPromise = null;
 
-let turnstileReady = false;
-let turnstileLoadPromise = null;
-
-function loadTurnstileScript() {
+export function loadTurnstileScript() {
   if (turnstileLoadPromise) return turnstileLoadPromise;
   turnstileLoadPromise = new Promise((resolve, reject) => {
-    if (typeof turnstile !== "undefined") { turnstileReady = true; resolve(); return; }
+    if (typeof turnstile !== "undefined") {
+      turnstileReady = true;
+      resolve();
+      return;
+    }
     const s = document.createElement("script");
     s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
     s.onload = () => {
@@ -22,23 +21,7 @@ function loadTurnstileScript() {
   return turnstileLoadPromise;
 }
 
-// Pre-load Turnstile immediately when offscreen doc is created
-loadTurnstileScript().catch(() => {});
-
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.action !== "__solve_turnstile") return false;
-
-  const { sitekey, requestId } = msg;
-
-  solveTurnstile(sitekey, requestId)
-    .then(result => sendResponse(result))
-    .catch(err => sendResponse({ success: false, error: err.message, requestId }));
-
-  return true; // async response
-});
-
-async function solveTurnstile(sitekey, requestId) {
-  // Ensure script is loaded
+export async function solveTurnstile(sitekey, requestId) {
   await loadTurnstileScript();
 
   return new Promise((resolve, reject) => {
@@ -46,8 +29,12 @@ async function solveTurnstile(sitekey, requestId) {
       reject(new Error("Turnstile challenge timed out (20s)"));
     }, 20_000);
 
-    // Clean up any previous widgets
     const container = document.getElementById("turnstile-container");
+    if (!container) {
+      clearTimeout(timeout);
+      reject(new Error("Container element #turnstile-container not found"));
+      return;
+    }
     container.innerHTML = "";
 
     const widgetDiv = document.createElement("div");
